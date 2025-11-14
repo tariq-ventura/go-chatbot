@@ -11,5 +11,6 @@ func (ro *Routes) BooksRoutes(r *gin.Engine) {
 	routes := r.Group("/api/v1/books")
 	{
 		routes.POST("/ingest", br.Insert)
+		routes.POST("/ask", br.AskQuestion)
 	}
 }

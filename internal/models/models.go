@@ -12,6 +12,7 @@ import (
 
 type Embedding interface {
 	GetEmbedding(text string) ([]float32, error)
+	AskQuestion(question string, contextTexts []string) (string, error)
 }
 
 var NewEmbedding = func(ctx context.Context) (Embedding, error) {

@@ -60,13 +60,17 @@ func (ch *ChunkHandler) Insert(c *gin.Context) {
 	chunks := books_app.SplitIntoChunks(extracted, 1500)
 	logs.LogInfo("Book split into chunks", map[string]any{"book_id": book.ID, "total_chunks": len(chunks)})
 
-	done := make(chan error)
+	done := make(chan error, len(chunks))
+	semaphore := make(chan struct{}, 200)
 
 	for i, ch := range chunks {
+		semaphore <- struct{}{}
 		go func(page int, content string) {
+			defer func() { <-semaphore }()
 			embedding, error := books_app.GetEmbedding(content)
 
 			if error != nil {
+				logs.LogError("Error getting embedding", map[string]any{"page": page, "error": error.Error()})
 				done <- error
 				return
 			}
@@ -77,15 +81,36 @@ func (ch *ChunkHandler) Insert(c *gin.Context) {
 				Content:   content,
 				Embedding: pgvector.NewVector(embedding),
 			})
+
+			if err != nil {
+				logs.LogError("Error inserting chunk", map[string]any{"page": page, "error": err.Error()})
+			} else {
+				logs.LogInfo("Chunk inserted successfully", map[string]any{"page": page, "book_id": book.ID})
+			}
+
 			done <- err
 		}(i+1, ch)
 	}
 
+	var errors []error
 	for i := 0; i < len(chunks); i++ {
 		if err := <-done; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+			errors = append(errors, err)
 		}
+	}
+
+	close(done)
+
+	if len(errors) > 0 {
+		logs.LogError("Some chunks failed to insert", map[string]any{"failed_count": len(errors), "total": len(chunks)})
+		c.JSON(http.StatusPartialContent, gin.H{
+			"status":       "partially_ingested",
+			"book_id":      book.ID,
+			"title":        title,
+			"total_chunks": len(chunks),
+			"failed":       len(errors),
+		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
