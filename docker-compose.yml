@@ -1,0 +1,41 @@
+services:
+  # PostgreSQL for production
+  postgres:
+    image: postgres:14
+    container_name: postgres-db
+    ports:
+      - 5435:5434 
+    restart: always
+    environment:
+      - POSTGRES_DB=${DB_NAME} 
+      - POSTGRES_USER=${USER_DB} 
+      - POSTGRES_PASSWORD=${PASSWORD} 
+    networks:
+      - api-postgres
+    volumes:
+      - postgres_local_data:/var/lib/postgresql/data:Z 
+
+  # Go API
+  go-api:
+    container_name: go-api
+    build: 
+      context: ./
+      dockerfile: Dockerfile
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - DB_CONTEXT=${DB_CONTEXT}
+      - DB_NAME=${DB_NAME}
+      - DB_STRING=${DB_STRING}
+    restart: always
+    ports:
+      - 3000:3000
+    networks:
+      - api-postgres
+
+networks:
+  api-postgres:
+    driver: bridge
+
+volumes:
+  postgres_local_data: {}
+  mongodb_data: {}
