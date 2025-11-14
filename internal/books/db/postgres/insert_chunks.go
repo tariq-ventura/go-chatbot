@@ -6,6 +6,7 @@ import (
 )
 
 func (db *PostgresClient) InsertChunks(result books_domain.Chunk) error {
+
 	insert := db.client.Create(&result)
 
 	if insert.Error != nil {

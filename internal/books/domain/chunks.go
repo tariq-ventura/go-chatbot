@@ -1,10 +1,14 @@
 package books_domain
 
-import "gorm.io/gorm"
+import (
+	"github.com/pgvector/pgvector-go"
+	"gorm.io/gorm"
+)
 
 type Chunk struct {
 	gorm.Model
-	BookID  string `gorm:"index"`
-	Page    int
-	Content string `gorm:"type:text"`
+	BookID    string `gorm:"index"`
+	Page      int
+	Content   string          `gorm:"type:text"`
+	Embedding pgvector.Vector `gorm:"type:vector(1024)"`
 }

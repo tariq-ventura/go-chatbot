@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/pgvector/pgvector-go"
 	books_app "github.com/tariq-ventura/go-chatbot/internal/books/app"
 	books_db "github.com/tariq-ventura/go-chatbot/internal/books/db"
 	books_domain "github.com/tariq-ventura/go-chatbot/internal/books/domain"
@@ -63,10 +64,18 @@ func (ch *ChunkHandler) Insert(c *gin.Context) {
 
 	for i, ch := range chunks {
 		go func(page int, content string) {
+			embedding, error := books_app.GetEmbedding(content)
+
+			if error != nil {
+				done <- error
+				return
+			}
+
 			err := database.InsertChunks(books_domain.Chunk{
-				BookID:  book.ID,
-				Page:    page,
-				Content: content,
+				BookID:    book.ID,
+				Page:      page,
+				Content:   content,
+				Embedding: pgvector.NewVector(embedding),
 			})
 			done <- err
 		}(i+1, ch)
