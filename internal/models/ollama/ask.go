@@ -25,15 +25,26 @@ func (oc *OllamaClient) AskQuestion(question string, contextTexts []string) (str
 
 	contextText := buildContext(contextTexts)
 
-	prompt := "Usa estrictamente este contexto para responder:\n\n" +
+	prompt := "Eres un asistente que SOLO responde basándose en el contexto proporcionado.\n\n" +
+		"INSTRUCCIONES ESTRICTAS:\n" +
+		"- Responde ÚNICAMENTE en español\n" +
+		"- Si la respuesta NO está en el contexto, di: 'Lo siento, no tengo información sobre eso en el contexto proporcionado.'\n" +
+		"- NO inventes ni agregues información que no esté en el contexto\n" +
+		"- Sé conciso y directo\n" +
+		"- NO incluyas referencias a páginas o títulos en tu respuesta, eso se agregará automáticamente\n\n" +
+		"CONTEXTO:\n" +
 		contextText +
-		"\n\nPregunta: " + question +
-		"\nRespuesta:"
+		"\n\nPREGUNTA: " + question +
+		"\n\nRESPUESTA:"
 
 	reqBody := map[string]any{
-		"model":  "tinyllama:1.1b",
+		"model":  "thirdeyeai/Qwen2.5-1.5B-Instruct-uncensored:Q4_0",
 		"prompt": prompt,
 		"stream": false,
+		"options": map[string]any{
+			"temperature": 0.1,
+			"top_p":       0.3,
+		},
 	}
 
 	jsonData, err := json.Marshal(reqBody)

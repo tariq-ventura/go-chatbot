@@ -15,7 +15,7 @@ type Database interface {
 	InsertChunks(result books_domain.Chunk) error
 	BooksMigration(ctx context.Context) error
 	ChunksMigration(ctx context.Context) error
-	SearchChunks(vec []float32, limit int) ([]string, error)
+	SearchChunks(vec []float32, limit int) ([]books_domain.ChunkResult, error)
 }
 
 var NewDatabase = func(ctx context.Context) (Database, error) {

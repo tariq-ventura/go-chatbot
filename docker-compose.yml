@@ -30,7 +30,7 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_STRING=${DB_STRING}
       - EMBEDDING_TYPE=${EMBEDDING_TYPE}
-      - OLLAMA_URL=http://host.docker.internal:11434
+      - OLLAMA_URL=${OLLAMA_URL}
     restart: always
     ports:
       - 3000:3000

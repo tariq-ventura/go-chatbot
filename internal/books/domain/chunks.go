@@ -12,3 +12,10 @@ type Chunk struct {
 	Content   string          `gorm:"type:text"`
 	Embedding pgvector.Vector `gorm:"type:vector(1024)"`
 }
+
+type ChunkResult struct {
+	Content string
+	Page    int
+	BookID  string
+	Title   string
+}

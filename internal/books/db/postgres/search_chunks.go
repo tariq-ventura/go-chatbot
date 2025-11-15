@@ -5,18 +5,20 @@ import (
 	"strings"
 
 	"github.com/pgvector/pgvector-go"
+	books_domain "github.com/tariq-ventura/go-chatbot/internal/books/domain"
 	"github.com/tariq-ventura/go-chatbot/internal/logs"
 )
 
-func (pc *PostgresClient) SearchChunks(vec []float32, limit int) ([]string, error) {
-	var results []struct {
-		Content string `gorm:"column:content"`
-	}
+func (pc *PostgresClient) SearchChunks(vec []float32, limit int) ([]books_domain.ChunkResult, error) {
+	var results []books_domain.ChunkResult
+
 	vector := pgvector.NewVector(vec)
+
 	err := pc.client.Raw(`
-        SELECT content
-        FROM chunks
-        ORDER BY embedding <-> $1
+        SELECT c.content, c.page, c.book_id, b.title
+        FROM chunks c
+        INNER JOIN books b ON c.book_id = b.id
+        ORDER BY c.embedding <-> $1
         LIMIT $2
     `, vector, limit).Scan(&results).Error
 
@@ -32,7 +34,7 @@ func (pc *PostgresClient) SearchChunks(vec []float32, limit int) ([]string, erro
 
 	logs.LogInfo("Successfully searched chunks in Postgres", map[string]any{"found": len(texts)})
 
-	return texts, nil
+	return results, nil
 }
 
 func formatVector(vec []float32) string {

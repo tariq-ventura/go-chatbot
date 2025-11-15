@@ -2,7 +2,9 @@ package books_infra
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	books_app "github.com/tariq-ventura/go-chatbot/internal/books/app"
@@ -32,12 +34,17 @@ func (ch *ChunkHandler) AskQuestion(c *gin.Context) {
 		return
 	}
 
-	chunks, err := database.SearchChunks(emb, 10)
+	chunks, err := database.SearchChunks(emb, 3)
 
 	if err != nil {
 		logs.LogError("Failed to search chunks", map[string]any{"error": err.Error()})
 		c.JSON(500, gin.H{"error": "Failed to search chunks"})
 		return
+	}
+
+	contextTexts := make([]string, len(chunks))
+	for i, chunk := range chunks {
+		contextTexts[i] = chunk.Content
 	}
 
 	client, err := models.NewEmbedding(context.Background())
@@ -48,7 +55,7 @@ func (ch *ChunkHandler) AskQuestion(c *gin.Context) {
 		return
 	}
 
-	response, err := client.AskQuestion(question, chunks)
+	response, err := client.AskQuestion(question, contextTexts)
 
 	if err != nil {
 		logs.LogError("Failed to get answer", map[string]any{"error": err.Error()})
@@ -56,8 +63,23 @@ func (ch *ChunkHandler) AskQuestion(c *gin.Context) {
 		return
 	}
 
+	var sources []map[string]interface{}
+	for _, chunk := range chunks {
+		sources = append(sources, map[string]interface{}{
+			"title": chunk.Title,
+			"page":  chunk.Page,
+		})
+	}
+
+	var sourceText strings.Builder
+	sourceText.WriteString("\n\n---\nFuentes:\n")
+	for _, chunk := range chunks {
+		sourceText.WriteString(fmt.Sprintf("- %s (Página %d)\n", chunk.Title, chunk.Page))
+	}
+
 	c.JSON(200, gin.H{
-		"answer":      response,
+		"answer":      response + sourceText.String(),
 		"chunks_used": len(chunks),
+		"sources":     sources,
 	})
 }
